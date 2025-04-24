@@ -8,7 +8,7 @@ on:
 
 jobs:
   fetch-equities:
-    if: github.event.schedule == '30 13 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule == '30 13 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
@@ -32,7 +32,7 @@ jobs:
         git push
 
   fetch-mf-navs:
-    if: github.event.schedule == '30 3 * * *'
+    if: github.event_name == 'schedule' && github.event.schedule == '30 13 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
