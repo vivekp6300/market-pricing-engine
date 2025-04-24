@@ -1,0 +1,56 @@
+name: "Fetch Daily Prices"
+
+on:
+  schedule:
+    - cron: '30 13 * * *'  # 7:00 PM IST (13:30 UTC) for equities
+    - cron: '30 3 * * *'   # 9:00 AM IST (03:30 UTC) for mutual funds
+  workflow_dispatch:
+
+jobs:
+  fetch-equities:
+    if: github.event.schedule == '30 13 * * *'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run Equity price fetcher
+      run: python scripts/fetch_prices.py
+    - name: Commit and push equity prices
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add data/price_history.csv || true
+        git commit -m "🔁 Auto-update: Equity prices" || echo "No changes to commit"
+        git push
+
+  fetch-mf-navs:
+    if: github.event.schedule == '30 3 * * *'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run Mutual Fund NAV fetcher
+      run: python scripts/mf_nav_fetcher.py
+    - name: Commit and push MF NAVs
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add data/mf_nav_history.csv || true
+        git commit -m "🔁 Auto-update: Mutual Fund NAVs" || echo "No changes to commit"
+        git push

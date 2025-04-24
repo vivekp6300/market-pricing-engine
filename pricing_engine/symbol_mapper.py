@@ -13,46 +13,44 @@ def validate_yfinance_symbol(symbol):
         return False
 
 
-def load_amfi_nav_table():
-    try:
-        url = "https://www.amfiindia.com/spages/NAVAll.txt"
-        r = requests.get(url, timeout=10)
-        records = []
-        for line in r.text.splitlines():
-            parts = line.split(';')
-            if len(parts) >= 5:
-                amfi_code, isin, _, name = parts[0].strip(), parts[1].strip(), parts[2].strip(), parts[3].strip()
-                records.append({"ISIN": isin, "Symbol": amfi_code, "Name": name})
-        return pd.DataFrame(records)
-    except Exception as e:
-        print(f"[WARN] Failed to load AMFI data: {e}")
-        return pd.DataFrame()
+def load_yahoo_equity_map(path):
+    df = pd.read_csv(path)
+    df = df.rename(columns={" ISIN NUMBER": "ISIN", "Yahoo_Equivalent_Code": "Yahoo_Symbol"})
+    df["ISIN"] = df["ISIN"].str.strip()
+    df["Yahoo_Symbol"] = df["Yahoo_Symbol"].str.strip().str.strip("'")
+    return df[["ISIN", "Yahoo_Symbol"]]
 
 
-def generate_isin_symbol_map(isin_master_path="data/isin_master.csv", output_path="data/isin_symbol_map.csv"):
+def load_existing_map(path):
+    if Path(path).exists():
+        return pd.read_csv(path)
+    else:
+        return pd.DataFrame(columns=["ISIN", "Symbol", "Type"])
+
+
+def generate_isin_symbol_map(
+    isin_master_path="data/isin_master.csv",
+    output_path="data/isin_symbol_map.csv",
+    yahoo_equity_path="data/EQUITY_L.csv"
+):
     isin_master = pd.read_csv(isin_master_path)
     isin_master.columns = ["ISIN", "Name", "liq_status", "Type"]
-    isin_master.dropna(subset=["ISIN"], inplace=True)
-    amfi_df = load_amfi_nav_table()
-    mapped = []
+    isin_master = isin_master.dropna(subset=["ISIN"])
 
-    for _, row in isin_master.iterrows():
-        isin, name, typ = row["ISIN"], row["Name"], row["Type"]
-        symbol = ""
+    # Load prior known mappings and Yahoo reference
+    equity_ref = load_yahoo_equity_map(yahoo_equity_path)
+    prior_map = load_existing_map(output_path)
 
-        if typ == "EQ":
-            probable = re.split(r'[ #(/]', name)[0].upper()
-            yfin_sym = probable + ".NS"
-            if validate_yfinance_symbol(yfin_sym):
-                symbol = yfin_sym
-        elif typ == "MF":
-            match = amfi_df[amfi_df["ISIN"] == isin]
-            if not match.empty:
-                symbol = match.iloc[0]["Symbol"]
+    # Detect new ISINs
+    new_isins = isin_master[~isin_master["ISIN"].isin(prior_map["ISIN"])]
 
-        if symbol:
-            mapped.append({"ISIN": isin, "Symbol": symbol, "Type": typ})
+    # Try matching with Yahoo equity reference file
+    auto_matched = pd.merge(new_isins, equity_ref, on="ISIN", how="inner")
+    auto_matched = auto_matched[["ISIN", "Yahoo_Symbol", "Type"]].rename(columns={"Yahoo_Symbol": "Symbol"})
 
-    df_map = pd.DataFrame(mapped)
-    df_map.to_csv(output_path, index=False)
-    print(f"[INFO] Generated {len(df_map)} ISIN-symbol mappings in {output_path}")
+    # Combine and deduplicate
+    combined = pd.concat([prior_map, auto_matched], ignore_index=True)
+    combined = combined.drop_duplicates(subset=["ISIN"], keep="last")
+    combined.to_csv(output_path, index=False)
+
+    print(f"[INFO] Updated ISIN-symbol map with {len(auto_matched)} new mappings. Total: {len(combined)}")

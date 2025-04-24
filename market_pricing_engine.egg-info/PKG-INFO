@@ -1,3 +1,14 @@
+Metadata-Version: 2.4
+Name: market-pricing-engine
+Version: 0.1.0
+Summary: Reusable price fetcher and ISIN-symbol mapper for Indian equities and mutual funds
+Author-email: Vivek <your@email.com>
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: pandas
+Requires-Dist: yfinance
+Requires-Dist: requests
+
 # Market Pricing Engine
 
 A reusable toolkit for fetching and storing daily market prices and ISIN-symbol mappings for Indian equities and mutual funds.
@@ -8,17 +19,6 @@ A reusable toolkit for fetching and storing daily market prices and ISIN-symbol 
 - Fetches MF NAVs from AMFI
 - Stores all prices in a daily historical CSV database
 
-This tool now supports automatic enrichment of ISIN-symbol mappings. Place your latest:
-
-- `isin_master.csv` — from CDSL
-- `EQUITY_L.csv` — downloaded from Kaggle
-
-Then run:
-```bash
-python scripts/generate_symbol_map.py
-```
-
-It will update `isin_symbol_map.csv` by combining existing mappings with new auto-matched entries.
 ## Usage
 
 ```bash
