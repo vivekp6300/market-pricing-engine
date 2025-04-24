@@ -31,6 +31,7 @@ jobs:
         git config user.email "github-actions@github.com"
         git add data/price_history.csv || true
         git commit -m "🔁 Auto-update: Equity prices" || echo "No changes to commit"
+	git pull --rebase origin main || echo "Nothing to rebase"
         git push
 
   fetch-mf-navs:
@@ -57,4 +58,5 @@ jobs:
         git config user.email "github-actions@github.com"
         git add data/mf_nav_history.csv || true
         git commit -m "🔁 Auto-update: Mutual Fund NAVs" || echo "No changes to commit"
+	git pull --rebase origin main || echo "Nothing to rebase"
         git push
