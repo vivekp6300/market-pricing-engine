@@ -8,9 +8,6 @@ on:
 jobs:
   fetch-mf-navs:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: market-pricing-engine
 
     steps:
     - name: Checkout repo
